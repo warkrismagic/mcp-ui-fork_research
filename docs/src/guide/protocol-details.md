@@ -1,15 +1,15 @@
 # Protocol Details
 
-This section dives deeper into the `HtmlResourceBlock` and its intended usage.
+This section dives deeper into the `UIResource` and its intended usage.
 
-## `HtmlResourceBlock` Recap
+## `UIResource` Recap
 
 ```typescript
-export interface HtmlResourceBlock {
+export interface UIResource {
   type: 'resource';
   resource: {
     uri: string;
-    mimeType: 'text/html' | 'text/uri-list';
+    mimeType: 'text/html' | 'text/uri-list' | 'application/vnd.mcp-ui.remote-dom';
     text?: string;
     blob?: string;
   };
@@ -24,12 +24,14 @@ export interface HtmlResourceBlock {
   - **Content**: `text` or `blob` contains either HTML string or URL string.
   - **Client Action**: 
     - If `mimeType: 'text/html'` → Render in a sandboxed iframe using `srcdoc`
-    - If `mimeType: 'text/uri-list'` → Render in an iframe using `src`
+    - If `mimeType: 'text/uri-list'` → Render in a sandboxed iframe using `src`
+    - If `mimeType: 'application/vnd.mcp-ui.remote-dom'` → Execute in sandboxed iframe and render in the tree
   - **Examples**: 
     - HTML content: A custom button, a small form, a data visualization snippet
     - URL content: Embedding a Grafana dashboard, a third-party widget, a mini-application
+    - RemoteDOM content: A component to be rendered with the host's look-and-feel (component library)
 
-## Content Delivery: `text` vs. `blob`
+## Content encoding: `text` vs. `blob`
 
 - **`text`**: Simple, direct string. Good for smaller, less complex content.
 - **`blob`**: Base64 encoded string.
@@ -38,7 +40,7 @@ export interface HtmlResourceBlock {
 
 ## URI List Format Support
 
-When using `mimeType: 'text/uri-list'`, the content follows the standard URI list format (RFC 2483). However, **MCP-UI requires a single URL** for rendering.
+When using `mimeType: 'text/uri-list'`, the content follows the standard URI list format (RFC 2483). However, **MCP-UI requires a single URL** for rendering. For security reasons, the protocol must be `http/s`.
 
 - **Single URL Requirement**: MCP-UI will use only the first valid URL found
 - **Multiple URLs**: If multiple URLs are provided, the client will use the first valid URL and log a warning about the ignored alternatives
@@ -70,7 +72,7 @@ if (
   mcpResource.type === 'resource' &&
   mcpResource.resource.uri?.startsWith('ui://')
 ) {
-  return <HtmlResource resource={mcpResource.resource} onUiAction={handleAction} />;
+  return <UIResourceRenderer resource={mcpResource.resource} onUIAction={handleAction} />;
 }
 
 // ❌ Not recommended: Check mimeType first
@@ -78,18 +80,20 @@ if (
   mcpResource.type === 'resource' &&
   (mcpResource.resource.mimeType === 'text/html' || mcpResource.resource.mimeType === 'text/uri-list')
 ) {
-  return <HtmlResource resource={mcpResource.resource} onUiAction={handleAction} />;
+  return <UIResourceRenderer resource={mcpResource.resource} onUIAction={handleAction} />;
 }
 ```
 
 **Benefits of URI-first checking:**
 - Future-proof: Works with new content types like `application/javascript`
 - Semantic clarity: `ui://` clearly indicates this is a UI resource
-- Simpler logic: Let the `HtmlResource` component handle mimeType-based rendering internally
+- Simpler logic: Let the `UIResourceRenderer` component handle mimeType-based rendering internally
 
 ## Communication (Client <-> Iframe)
 
 For `ui://` resources, you can use `window.parent.postMessage` to send data or actions from the iframe back to the host client application. The client application should set up an event listener for `message` events.
+
+### Basic Communication
 
 **Iframe Script Example:**
 
@@ -114,56 +118,144 @@ For `ui://` resources, you can use `window.parent.postMessage` to send data or a
 window.addEventListener('message', (event) => {
   // Add origin check for security: if (event.origin !== "expectedOrigin") return;
   if (event.data && event.data.tool) {
-    // Call the onUiAction prop of HtmlResource
+    // Call the onUIAction prop of UIResourceRenderer
   }
 });
 ```
 
-For URL-based resources (`mimeType: 'text/uri-list'`), communication depends on what the external application supports (e.g., its own `postMessage` API, URL parameters, etc.).
+### Asynchronous Communication with Message IDs
 
-## Backwards Compatibility
+For iframe content that needs to handle asynchronous responses, you can include a `messageId` field in your UI action messages. When the host provides an `onUIAction` callback, the iframe will receive acknowledgment and response messages.
 
-The MCP-UI client library maintains backwards compatibility with legacy `ui-app://` URI schemes used by older servers until MAJOR version 4.
+**Message Flow:**
 
-### Legacy URI Support
+1. **Iframe sends message with `messageId`:**
+   ```javascript
+   window.parent.postMessage({
+     type: 'tool',
+     messageId: 'unique-request-id-123',
+     payload: { toolName: 'myAsyncTool', params: { data: 'some data' } }
+   }, '*');
+   ```
 
-- **`ui-app://`**: Legacy scheme for external applications containing URLs, but historically used incorrect `mimeType: 'text/html'`
-- **Automatic Detection**: Client automatically detects and handles legacy URIs by overriding the incorrect mimeType
-- **Migration Path**: Servers can gradually migrate from `ui-app://` to `ui://` + `mimeType: 'text/uri-list'`
-- **Deprecation Warning**: Client logs warnings to encourage server updates
+2. **Host responds with acknowledgment:**
+   ```javascript
+   // The iframe receives this message back
+   {
+     type: 'ui-action-received',
+     messageId: 'unique-request-id-123',
+   }
+   ```
 
-### Migration Examples
+3. **When `onUIAction` completes successfully:**
+   ```javascript
+   // The iframe receives the actual response
+   {
+     type: 'ui-action-response',
+     messageId: 'unique-request-id-123',
+     payload: {
+       response: { /* the result from onUIAction */ }
+     }
+   }
+   ```
 
-```typescript
-// Legacy pattern (still supported):
-{
-  type: 'resource',
-  resource: {
-    uri: 'ui-app://dashboard/main',
-    mimeType: 'text/html',
-    text: 'https://grafana.example.com/dashboard'
+4. **If `onUIAction` encounters an error:**
+   ```javascript
+   // The iframe receives the error
+   {
+     type: 'ui-action-error',
+     messageId: 'unique-request-id-123',
+     payload: {
+       error: { /* the error object */ }
+     }
+   }
+   ```
+
+**Complete Iframe Example with Async Handling:**
+
+```html
+<button onclick="handleAsyncAction()">Async Action</button>
+<div id="status">Ready</div>
+<div id="result"></div>
+
+<script>
+  let messageCounter = 0;
+  const pendingRequests = new Map();
+
+  function generateMessageId() {
+    return `msg-${Date.now()}-${++messageCounter}`;
   }
-}
 
-// Modern equivalent:
-{
-  type: 'resource',
-  resource: {
-    uri: 'ui://dashboard/main',
-    mimeType: 'text/uri-list',
-    text: 'https://grafana.example.com/dashboard'
+  function handleAsyncAction() {
+    const messageId = generateMessageId();
+    const statusEl = document.getElementById('status');
+    const resultEl = document.getElementById('result');
+    
+    statusEl.textContent = 'Sending request...';
+    
+    // Store the request context
+    pendingRequests.set(messageId, { 
+      startTime: Date.now(),
+      action: 'async-tool-call'
+    });
+    
+    // Send the message with messageId
+    window.parent.postMessage({
+      type: 'tool',
+      messageId: messageId,
+      payload: { 
+        toolName: 'processData', 
+        params: { data: 'example data', timestamp: Date.now() }
+      }
+    }, '*');
   }
-}
+
+  // Listen for responses from the host
+  window.addEventListener('message', (event) => {
+    const message = event.data;
+    
+    if (!message.messageId || !pendingRequests.has(message.messageId)) {
+      return; // Not for us or unknown request
+    }
+    
+    const statusEl = document.getElementById('status');
+    const resultEl = document.getElementById('result');
+    const request = pendingRequests.get(message.messageId);
+    
+    switch (message.type) {
+      case 'ui-action-received':
+        statusEl.textContent = 'Request acknowledged, processing...';
+        break;
+        
+      case 'ui-action-response':
+        statusEl.textContent = 'Completed successfully!';
+        resultEl.innerHTML = `<pre>${JSON.stringify(message.payload.response, null, 2)}</pre>`;
+        pendingRequests.delete(message.messageId);
+        break;
+        
+      case 'ui-action-error':
+        statusEl.textContent = 'Error occurred!';
+        resultEl.innerHTML = `<div style="color: red;">Error: ${JSON.stringify(message.payload.error)}</div>`;
+        pendingRequests.delete(message.messageId);
+        break;
+    }
+  });
+</script>
 ```
 
-### Client Pattern for Both Legacy and Modern
+### Message Types
 
-```tsx
-// This pattern works for both legacy and modern URIs:
-if (
-  mcpResource.type === 'resource' &&
-  (mcpResource.resource.uri?.startsWith('ui://') || mcpResource.resource.uri?.startsWith('ui-app://'))
-) {
-  return <HtmlResource resource={mcpResource.resource} onUiAction={handleAction} />;
-}
-```
+The following internal message types are available as constants:
+
+- `InternalMessageType.UI_ACTION_RECEIVED` (`'ui-action-received'`)
+- `InternalMessageType.UI_ACTION_RESPONSE` (`'ui-action-response'`)  
+- `InternalMessageType.UI_ACTION_ERROR` (`'ui-action-error'`)
+
+These types are exported from both `@mcp-ui/client` and `@mcp-ui/server` packages.
+
+**Important Notes:**
+
+- **Message ID is optional**: If you don't provide a `messageId`, the iframe will not receive response messages.
+- **Only with `onUIAction`**: Response messages are only sent when the host provides an `onUIAction` callback.
+- **Unique IDs**: Ensure `messageId` values are unique to avoid conflicts between multiple pending requests.
+- **Cleanup**: Always clean up pending request tracking when you receive responses to avoid memory leaks.

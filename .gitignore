@@ -129,13 +129,14 @@ dist
 
 # VitePress
 docs/src/.vitepress/dist
+docs/.vitepress/cache
 docs/src/.vitepress/cache
 
 # Monorepo specific
-/packages/**/dist
-/packages/**/coverage
-/apps/**/dist
-/apps/**/coverage
+/sdks/**/dist
+/sdks/**/coverage
+/examples/**/dist
+/examples/**/coverage
 
 # OS generated files #
 ######################

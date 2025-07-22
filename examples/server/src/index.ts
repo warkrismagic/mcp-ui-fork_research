@@ -2,9 +2,7 @@ import { McpAgent } from 'agents/mcp';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { z } from 'zod';
 import { createRequestHandler } from 'react-router';
-import {
-  createHtmlResource,
-} from '@mcp-ui/server';
+import { createUIResource } from '@mcp-ui/server';
 
 declare module 'react-router' {
   export interface AppLoadContext {
@@ -23,7 +21,7 @@ const requestHandler = createRequestHandler(
 // Define our MCP agent with tools
 export class MyMCP extends McpAgent {
   server = new McpServer({
-    name: 'MCP UI Example',
+    name: 'MCP-UI Example',
     version: '1.0.0',
   });
 
@@ -136,32 +134,26 @@ export class MyMCP extends McpAgent {
       },
     );
 
-    this.server.tool(
-      'nudge_team_member',
-      { name: z.string() },
-      async ({ name }) => ({
-        content: [{ type: 'text', text: 'Nudged ' + name + '!' }],
-      }),
-    );
+    this.server.tool('nudge_team_member', { name: z.string() }, async ({ name }) => ({
+      content: [{ type: 'text', text: 'Nudged ' + name + '!' }],
+    }));
 
     this.server.tool(
       'show_task_status',
       'Displays a UI for the user to see the status of tasks. Use get_tasks_status unless asked to SHOW the status',
       async () => {
         const scheme =
-          requestHost.includes('localhost') || requestHost.includes('127.0.0.1')
-            ? 'http'
-            : 'https';
+          requestHost.includes('localhost') || requestHost.includes('127.0.0.1') ? 'http' : 'https';
 
         const pickerPageUrl = `${scheme}://${requestHost}/task`;
 
         // Generate a unique URI for this specific invocation of the file picker UI.
         // This URI identifies the resource block itself, not the content of the iframe.
-        const uniqueUiAppUri = `ui://task-manager/${Date.now()}`;
-        const resourceBlock = createHtmlResource({
-          uri: uniqueUiAppUri,
+        const uniqueUIAppUri = `ui://task-manager/${Date.now()}` as `ui://${string}`;
+        const resourceBlock = createUIResource({
+          uri: uniqueUIAppUri,
           content: { type: 'externalUrl', iframeUrl: pickerPageUrl },
-          delivery: 'text', // The URL itself is delivered as text
+          encoding: 'text', // The URL itself is delivered as text
         });
 
         return {
@@ -175,19 +167,17 @@ export class MyMCP extends McpAgent {
       { id: z.string(), name: z.string(), avatarUrl: z.string() },
       async ({ id, name, avatarUrl }) => {
         const scheme =
-          requestHost.includes('localhost') || requestHost.includes('127.0.0.1')
-            ? 'http'
-            : 'https';
+          requestHost.includes('localhost') || requestHost.includes('127.0.0.1') ? 'http' : 'https';
 
         const pickerPageUrl = `${scheme}://${requestHost}/user?id=${id}&name=${name}&avatarUrl=${avatarUrl}`;
 
         // Generate a unique URI for this specific invocation of the file picker UI.
         // This URI identifies the resource block itself, not the content of the iframe.
-        const uniqueUiAppUri = `ui://user-profile/${Date.now()}`;
-        const resourceBlock = createHtmlResource({
-          uri: uniqueUiAppUri,
+        const uniqueUIAppUri = `ui://user-profile/${Date.now()}` as `ui://${string}`;
+        const resourceBlock = createUIResource({
+          uri: uniqueUIAppUri,
           content: { type: 'externalUrl', iframeUrl: pickerPageUrl },
-          delivery: 'text', // The URL itself is delivered as text
+          encoding: 'text', // The URL itself is delivered as text
         });
 
         return {
@@ -197,12 +187,12 @@ export class MyMCP extends McpAgent {
     );
 
     this.server.tool('show_remote_dom_react', 'Shows a react remote-dom component', async () => {
-      const resourceBlock = createHtmlResource({
+      const resourceBlock = createUIResource({
         uri: `ui://remote-dom-react/${Date.now()}` as `ui://${string}`,
-        delivery: 'text',
+        encoding: 'text',
         content: {
           type: 'remoteDom',
-          flavor: 'react',
+          framework: 'react',
           script: `
             // Create a state variable to track the current logo
             let isDarkMode = false;
@@ -259,21 +249,24 @@ export class MyMCP extends McpAgent {
             stack.appendChild(toggleButton);
             root.appendChild(stack);
           `,
-        }
+        },
       });
       return {
         content: [resourceBlock],
       };
     });
 
-    this.server.tool('show_remote_dom_web_components', 'Shows a web components remote-dom component', async () => {
-      const resourceBlock = createHtmlResource({
-        uri: `ui://remote-dom-wc/${Date.now()}` as `ui://${string}`,
-        delivery: 'text',
-        content: {
-          type: 'remoteDom',
-          flavor: 'webcomponents',
-          script: `
+    this.server.tool(
+      'show_remote_dom_web_components',
+      'Shows a web components remote-dom component',
+      async () => {
+        const resourceBlock = createUIResource({
+          uri: `ui://remote-dom-wc/${Date.now()}` as `ui://${string}`,
+          encoding: 'text',
+          content: {
+            type: 'remoteDom',
+            framework: 'webcomponents',
+            script: `
             // Create a state variable to track the current logo
             let isDarkMode = false;
 
@@ -329,12 +322,13 @@ export class MyMCP extends McpAgent {
             stack.appendChild(toggleButton);
             root.appendChild(stack);
           `,
-        }
-      });
-      return {
-        content: [resourceBlock],
-      };
-    });
+          },
+        });
+        return {
+          content: [resourceBlock],
+        };
+      },
+    );
   }
 }
 

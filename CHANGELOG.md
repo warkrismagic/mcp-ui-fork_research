@@ -1,10 +1,109 @@
+# [5.2.0](https://github.com/idosal/mcp-ui/compare/v5.1.2...v5.2.0) (2025-07-18)
+
+
+### Features
+
+* support generic messages response ([#35](https://github.com/idosal/mcp-ui/issues/35)) ([10b407b](https://github.com/idosal/mcp-ui/commit/10b407b279b3ee9608ef077445f4d714f88343c5))
+
+## [5.1.2](https://github.com/idosal/mcp-ui/compare/v5.1.1...v5.1.2) (2025-07-18)
+
+
+### Bug Fixes
+
+* use targetOrigin in the proxy message relay ([#40](https://github.com/idosal/mcp-ui/issues/40)) ([b3fb54e](https://github.com/idosal/mcp-ui/commit/b3fb54e28ca7b8eeda896b5bcf478b6343dbba47))
+
+## [5.1.1](https://github.com/idosal/mcp-ui/compare/v5.1.0...v5.1.1) (2025-07-18)
+
+
+### Bug Fixes
+
+* add a bridge to pass messages in and out of the proxy ([#38](https://github.com/idosal/mcp-ui/issues/38)) ([30ccac0](https://github.com/idosal/mcp-ui/commit/30ccac0706ad8e02ebcd8960924ed1d58ddedf85))
+
+# [5.1.0](https://github.com/idosal/mcp-ui/compare/v5.0.0...v5.1.0) (2025-07-18)
+
+
+### Features
+
+* add proxy option to externalUrl ([#37](https://github.com/idosal/mcp-ui/issues/37)) ([7b95cd0](https://github.com/idosal/mcp-ui/commit/7b95cd0b3873fc1cde28748ec463e81c6ff1c494))
+
+# [5.0.0](https://github.com/idosal/mcp-ui/compare/v4.1.4...v5.0.0) (2025-07-17)
+
+
+### Bug Fixes
+
+* rename delivery -> encoding and flavor -> framework ([#36](https://github.com/idosal/mcp-ui/issues/36)) ([9a509ed](https://github.com/idosal/mcp-ui/commit/9a509ed80d051b0a8042b36958b401a0a7c1e138))
+
+
+### BREAKING CHANGES
+
+* The existing naming is ambiguous. Renaming delivery to encoding and flavor to framework should clarify the intent.
+
+## [4.1.4](https://github.com/idosal/mcp-ui/compare/v4.1.3...v4.1.4) (2025-07-16)
+
+
+### Bug Fixes
+
+* pass ref explicitly using iframeProps ([#33](https://github.com/idosal/mcp-ui/issues/33)) ([d01b5d1](https://github.com/idosal/mcp-ui/commit/d01b5d1e4cdaedc436ba2fa8984d866d93d59087))
+
+## [4.1.3](https://github.com/idosal/mcp-ui/compare/v4.1.2...v4.1.3) (2025-07-15)
+
+
+### Bug Fixes
+
+* ref passing to UIResourceRenderer ([#32](https://github.com/idosal/mcp-ui/issues/32)) ([d28c23f](https://github.com/idosal/mcp-ui/commit/d28c23f9b8ee320f4e361200ae02a23f0d2a1c0c))
+
+## [4.1.2](https://github.com/idosal/mcp-ui/compare/v4.1.1...v4.1.2) (2025-07-10)
+
+
+### Bug Fixes
+
+* validate URL ([b7c994d](https://github.com/idosal/mcp-ui/commit/b7c994dfdd947b3dfbb903fc8cb896d61004c8d8))
+
+## [4.1.1](https://github.com/idosal/mcp-ui/compare/v4.1.0...v4.1.1) (2025-07-06)
+
+
+### Bug Fixes
+
+* text and blob support in RemoteDOM resources ([ec68eb9](https://github.com/idosal/mcp-ui/commit/ec68eb90df984da8b492cc25eafdafdeda79f299))
+
+# [4.1.0](https://github.com/idosal/mcp-ui/compare/v4.0.0...v4.1.0) (2025-07-05)
+
+
+### Features
+
+* separate html and remote-dom props ([#24](https://github.com/idosal/mcp-ui/issues/24)) ([a7f0529](https://github.com/idosal/mcp-ui/commit/a7f05299dc9cc40184f9ab25c5b648ee7077be64))
+
+# [4.0.0](https://github.com/idosal/mcp-ui/compare/v3.0.0...v4.0.0) (2025-07-05)
+
+
+### Bug Fixes
+
+* rename components and methods to fit new scope ([#22](https://github.com/idosal/mcp-ui/issues/22)) ([6bab1fe](https://github.com/idosal/mcp-ui/commit/6bab1fe3a168a18e7ba4762e23478abf4e0cc84c))
+
+
+### BREAKING CHANGES
+
+* exported names have changed
+
+# [3.0.0](https://github.com/idosal/mcp-ui/compare/v2.5.1...v3.0.0) (2025-07-04)
+
+
+### Features
+
+* switch to UiResourceRenderer ([#21](https://github.com/idosal/mcp-ui/issues/21)) ([6fe3166](https://github.com/idosal/mcp-ui/commit/6fe316682675e27db914d60696754677e3783448))
+
+
+### BREAKING CHANGES
+
+* removed deprecated client API
+
 ## [2.5.1](https://github.com/idosal/mcp-ui/compare/v2.5.0...v2.5.1) (2025-06-28)
 
 
 ### Bug Fixes
 
 * export RemoteDomResource ([2b86f2d](https://github.com/idosal/mcp-ui/commit/2b86f2dd4506de49c69908e23d84a2a323170446))
-* export ResourceRenderer and HtmlResource ([2b841a5](https://github.com/idosal/mcp-ui/commit/2b841a556c1111ed70ccb3d3987afd21fe7df897))
+* export UiResourceRenderer and HtmlResource ([2b841a5](https://github.com/idosal/mcp-ui/commit/2b841a556c1111ed70ccb3d3987afd21fe7df897))
 
 # [2.5.0](https://github.com/idosal/mcp-ui/compare/v2.4.0...v2.5.0) (2025-06-27)
 

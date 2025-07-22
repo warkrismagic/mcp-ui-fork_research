@@ -1,5 +1,5 @@
 import {
-  RemoteDomResource,
+  UIResourceRenderer,
   basicComponentLibrary,
   remoteTextDefinition,
   remoteButtonDefinition,
@@ -18,7 +18,7 @@ const remoteElements = [
   remoteImageDefinition,
 ];
 
-const defaultRemoteDomScript = `let isDarkMode = false;
+const defaultRemoteDOMScript = `let isDarkMode = false;
 
 // Create the main container stack with centered alignment
 const stack = document.createElement('ui-stack');
@@ -74,8 +74,8 @@ root.appendChild(stack);
 `;
 
 function App() {
-  const [scriptContent, setScriptContent] = useState(defaultRemoteDomScript);
-  const [inputValue, setInputValue] = useState(defaultRemoteDomScript);
+  const [scriptContent, setScriptContent] = useState(defaultRemoteDOMScript);
+  const [inputValue, setInputValue] = useState(defaultRemoteDOMScript);
   const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
@@ -98,17 +98,16 @@ function App() {
 
   const mockResourceReact = useMemo(
     () => ({
-      mimeType: 'application/vnd.mcp-ui.remote-dom+javascript; flavor=react',
-      content: scriptContent,
+      mimeType: 'application/vnd.mcp-ui.remote-dom+javascript; framework=react',
+      text: scriptContent,
     }),
     [scriptContent],
   );
 
   const mockResourceWebComponents = useMemo(
     () => ({
-      mimeType:
-        'application/vnd.mcp-ui.remote-dom+javascript; flavor=webcomponents',
-      content: scriptContent,
+      mimeType: 'application/vnd.mcp-ui.remote-dom+javascript; framework=webcomponents',
+      text: scriptContent,
     }),
     [scriptContent],
   );
@@ -143,11 +142,13 @@ function App() {
         >
           <h2 style={{ textAlign: 'center' }}>Basic React Components</h2>
 
-          <RemoteDomResource
+          <UIResourceRenderer
             key={`basic-${scriptContent}`}
             resource={mockResourceReact}
-            library={basicComponentLibrary}
-            remoteElements={remoteElements}
+            remoteDomProps={{
+              library: basicComponentLibrary,
+              remoteElements: remoteElements,
+            }}
           />
         </div>
 
@@ -160,11 +161,13 @@ function App() {
         >
           <h2 style={{ textAlign: 'center' }}>Radix React Components</h2>
 
-          <RemoteDomResource
+          <UIResourceRenderer
             key={`radix-${scriptContent}`}
             resource={mockResourceReact}
-            library={radixComponentLibrary}
-            remoteElements={remoteElements}
+            remoteDomProps={{
+              library: radixComponentLibrary,
+              remoteElements: remoteElements,
+            }}
           />
         </div>
 
@@ -177,11 +180,13 @@ function App() {
         >
           <h2 style={{ textAlign: 'center' }}>Web Components</h2>
 
-          <RemoteDomResource
+          <UIResourceRenderer
             key={`webcomponents-${scriptContent}`}
             resource={mockResourceWebComponents}
-            library={basicComponentLibrary}
-            remoteElements={remoteElements}
+            remoteDomProps={{
+              library: basicComponentLibrary,
+              remoteElements: remoteElements,
+            }}
           />
         </div>
       </div>

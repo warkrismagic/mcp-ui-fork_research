@@ -4,28 +4,31 @@ Welcome to the MCP-UI documentation!
 
 This SDK provides tools for building Model Context Protocol (MCP) enabled applications with interactive UI components. It aims to standardize how models and tools can request the display of rich HTML interfaces within a client application.
 
-## What is MCP UI?
+You can use [GitMCP](https://gitmcp.io/idosal/mcp-ui) to give your IDE access to `mcp-ui`'s latest documentation! 
+<a href="https://gitmcp.io/idosal/mcp-ui"><img src="https://img.shields.io/endpoint?url=https://gitmcp.io/badge/idosal/mcp-ui" alt="MCP Documentation"></a>
 
-MCP UI is a TypeScript SDK containing:
+## What is MCP-UI?
 
-- **`@mcp-ui/client`**: UI components (like `<HtmlResource />`) for easy rendering of interactive HTML resources.
-- **`@mcp-ui/server`**: Helper functions (like `createHtmlResource`) for server-side logic to easily construct `HtmlResource` objects.
+MCP-UI provides SDKs for multiple languages, including:
 
-## Core Concept: The Interactive HTML Resource Protocol
+- **`@mcp-ui/client`**: A Typescript package with UI components (like `<UIResourceRenderer />`) for easy rendering of interactive UI.
+- **`@mcp-ui/server`**: A Typescript package with helper functions (like `createUIResource`) for server-side logic to easily construct `UIResource` objects.
+- **`mcp_ui_server`**: A Ruby gem with helper methods (like `create_ui_resource`) for server-side logic in Ruby applications.
 
-The central piece of this SDK is the `HtmlResource`. This object defines a contract for how interactive HTML content should be structured and delivered from a server/tool to a client.
+## The Interactive UI Resource Protocol
 
-### `HtmlResource` Structure
+The central piece of this SDK is the `UIResource`. This object defines a contract for how interactive UI should be structured and delivered from a server/tool to a client.
+
+### `UIResource` Structure
 
 ```typescript
-// Defined in @mcp-ui/shared, but shown here for clarity
-export interface HtmlResource {
-  type: 'resource'; // Fixed type identifier
+interface UIResource {
+  type: 'resource';
   resource: {
-    uri: string; // Unique identifier. Governs rendering behavior.
-    mimeType: 'text/html' | 'text/uri-list'; // text/html for HTML content, text/uri-list for URL content
-    text?: string; // Raw HTML string or an iframe URL string.
-    blob?: string; // Base64 encoded HTML string or iframe URL string.
+    uri: string;       // ui://component/id
+    mimeType: 'text/html' | 'text/uri-list' | 'application/vnd.mcp-ui.remote-dom'; // text/html for HTML content, text/uri-list for URL content, application/vnd.mcp-ui.remote-dom for remote-dom content (Javascript)
+    text?: string;      // Inline HTML or external URL
+    blob?: string;      // Base64-encoded HTML or URL
   };
 }
 ```
@@ -38,17 +41,86 @@ export interface HtmlResource {
     - `mimeType: 'text/html'` → HTML content rendered via `<iframe srcdoc>`
     - `mimeType: 'text/uri-list'` → URL content rendered via `<iframe src>`
 - **`mimeType`**: `'text/html'` for HTML content, `'text/uri-list'` for URL content
-- **`text` or `blob` Content Delivery**:
-  - `text`: The HTML string or URL is provided directly.
-  - `blob`: The HTML string or URL is Base64 encoded. Useful for complex HTML, ensuring integrity, or avoiding issues with JSON encoding of special characters.
+- **`text` or `blob`**: The actual content (HTML string or URL string), either as plain text or Base64 encoded
 
-This protocol allows for flexible delivery and rendering of HTML content, from simple static blocks to fully interactive applications embedded within the client.
+## How It Works
 
-Dive into the "Getting Started" guide or explore specific SDK packages for more details.
+1. **Server Side**: Use the server SDK for your language to create `UIResource` objects.
+2. **Client Side**: Use `@mcp-ui/client` to render these resources in your React app.
+
+### Example Flow
+
+**Server (MCP Tool):**
+::: code-group
+
+```typescript [TypeScript]
+import { createUIResource } from '@mcp-ui/server';
+
+const resource = createUIResource({
+  uri: 'ui://my-tool/dashboard',
+  content: { type: 'rawHtml', htmlString: '<h1>Dashboard</h1>' },
+  encoding: 'text'
+});
+
+// Return in MCP response
+return { content: [resource] };
+```
+
+```ruby [Ruby]
+require 'mcp_ui_server'
+
+resource = McpUiServer.create_ui_resource(
+  uri: 'ui://my-tool/dashboard',
+  content: { type: :raw_html, htmlString: '<h1>Dashboard</h1>' },
+  encoding: :text
+)
+
+# Return in MCP response
+{ content: [resource] }
+```
+
+:::
+
+**Client (React App):**
+```tsx
+import { UIResourceRenderer } from '@mcp-ui/client';
+
+function App({ mcpResponse }) {
+  return (
+    <div>
+      {mcpResponse.content.map((item) => (
+        <UIResourceRenderer
+          key={item.resource.uri}
+          resource={item.resource}
+          onUIAction={(result) => {
+            console.log('Action:', result);
+            return { status: 'handled' };
+          }}
+        />
+      ))}
+    </div>
+  );
+}
+```
+
+## Key Benefits
+
+- **Standardized**: Consistent interface for UI resources across MCP applications
+- **Secure**: Sandboxed iframe execution prevents malicious code from affecting the host
+- **Interactive**: Two-way communication between resources and host application
+- **Flexible**: Supports both direct HTML content and external applications
+- **Future-proof**: Extensible design supports new resource types as they're added
 
 ## Philosophy
 
-Returning chunks of UI as responses from MCP servers is a powerful way to create interactive experiences. However, it can be difficult to get right.
-This is an ongoing discussion in the MCP community and [steering committee](https://github.com/orgs/modelcontextprotocol/discussions/287#discussioncomment-13175290).
+Allowing MCP servers to respond with UI snippets is a powerful way to create interactive experiences in hosts. Nailing down the best way to do it is challenging, and is an ongoing discussion in the MCP community and the [UI Community Working Group](https://github.com/modelcontextprotocol-community/working-groups/issues/35).
+This project is an experimental playground for MCP-UI ideas, that aims to test out philosophies in the wild.
 
-This project is an experimental playground for MCP UI ideas, as we're exploring ways to make it easier.
+## Next Steps
+
+- [Getting Started](./getting-started.md) - Set up your development environment
+- [Server Walkthroughs](./server/typescript/walkthrough.md) - Step-by-step guides for integrating `mcp-ui` into your server
+- [Client SDK](./client/overview.md) - Learn to render UI resources
+- [Typescript Server SDK](./server/typescript/overview.md) - Learn to create UI resources in Typescript
+- [Ruby Server SDK](./server/ruby/overview.md) - Learn to create UI resources in Ruby
+- [Protocol Details](./protocol-details.md) - Understand the underlying protocol

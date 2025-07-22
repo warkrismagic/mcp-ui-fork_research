@@ -1,4 +1,4 @@
-class UiButton extends HTMLElement {
+class UIButton extends HTMLElement {
   static get observedAttributes() {
     return ['label'];
   }
@@ -25,7 +25,7 @@ class UiButton extends HTMLElement {
   }
 }
 
-class UiText extends HTMLElement {
+class UIText extends HTMLElement {
   static get observedAttributes() {
     return ['content'];
   }
@@ -48,7 +48,7 @@ class UiText extends HTMLElement {
   }
 }
 
-class UiStack extends HTMLElement {
+class UIStack extends HTMLElement {
   static get observedAttributes() {
     return ['direction', 'spacing', 'align', 'justify'];
   }
@@ -79,11 +79,7 @@ class UiStack extends HTMLElement {
     div.style.justifyContent = justify;
   }
 
-  attributeChangedCallback(
-    _name: string,
-    _oldValue: string,
-    _newValue: string,
-  ) {
+  attributeChangedCallback(_name: string, _oldValue: string, _newValue: string) {
     const div = this.shadowRoot?.querySelector('div');
     if (div) {
       this.updateStyles(div);
@@ -91,7 +87,7 @@ class UiStack extends HTMLElement {
   }
 }
 
-class UiImage extends HTMLElement {
+class UIImage extends HTMLElement {
   static get observedAttributes() {
     return ['src', 'alt', 'width', 'height'];
   }
@@ -144,15 +140,15 @@ class UiImage extends HTMLElement {
 
 export function defineWebComponents() {
   if (!customElements.get('ui-button')) {
-    customElements.define('ui-button', UiButton);
+    customElements.define('ui-button', UIButton);
   }
   if (!customElements.get('ui-text')) {
-    customElements.define('ui-text', UiText);
+    customElements.define('ui-text', UIText);
   }
   if (!customElements.get('ui-stack')) {
-    customElements.define('ui-stack', UiStack);
+    customElements.define('ui-stack', UIStack);
   }
   if (!customElements.get('ui-image')) {
-    customElements.define('ui-image', UiImage);
+    customElements.define('ui-image', UIImage);
   }
 }
