@@ -1,6 +1,17 @@
 # UIResourceRenderer Component
 
-The `<UIResourceRenderer />` component is the **main entry point** for rendering MCP-UI resources in your React application. It automatically detects the resource type and renders the appropriate component internally.
+The `UIResourceRenderer` component is the **main entry point** for rendering MCP-UI resources in your application. It automatically detects the resource type and renders the appropriate component internally.
+It is available as a React component and as a Web Component.
+
+## React Component
+
+React applications may use the `<UIResourceRenderer />` component.
+
+## Web Component
+
+For developers using frameworks other than React, a Web Component version is available. It can be used as a standard HTML element (`<ui-resource-renderer>`) and styled with regular CSS.
+
+[**» See the Web Component Usage & Examples for more details**](./wc-usage-examples.md)
 
 ## Why use `UIResourceRenderer`?
 
@@ -43,13 +54,15 @@ interface UIResourceRendererProps {
   { type: 'link', payload: { url: string }, messageId?: string }
   ```
   
-  **Asynchronous Communication**: When actions include a `messageId`, the iframe automatically receives response messages (`ui-action-received`, `ui-action-response`, `ui-action-error`). See [Protocol Details](../protocol-details.md#asynchronous-communication-with-message-ids) for examples.
+  **Asynchronous Communication**: When actions include a `messageId`, the iframe automatically receives response messages (`ui-message-received`, `ui-message-response`). See [Protocol Details](../protocol-details.md#asynchronous-communication-with-message-ids) for examples.
 - **`supportedContentTypes`**: Optional array to restrict which content types are allowed (`['rawHtml', 'externalUrl', 'remoteDom']`)
 - **`htmlProps`**: Optional props for the `<HTMLResourceRenderer>`
   - **`style`**: Optional custom styles for iframe-based resources
   - **`proxy`**: Optional. A URL to a static "proxy" script for rendering external URLs. See [Using a Proxy for External URLs](./using-a-proxy.md) for details.
   - **`iframeProps`**: Optional props passed to iframe elements (for HTML/URL resources)
     - **`ref`**: Optional React ref to access the underlying iframe element
+  - **`iframeRenderData`**: Optional `Record<string, unknown>` to pass data to the iframe upon rendering. This enables advanced use cases where the parent application needs to provide initial state or configuration to the sandboxed iframe content.
+  - **`autoResizeIframe`**: Optional `boolean | { width?: boolean; height?: boolean }` to automatically resize the iframe to the size of the content.
 - **`remoteDomProps`**: Optional props for the `<RemoteDOMResourceRenderer>`
   - **`library`**: Optional component library for Remote DOM resources (defaults to `basicComponentLibrary`)
   - **`remoteElements`**: Optional remote element definitions for Remote DOM resources. REQUIRED for Remote DOM snippets.
@@ -137,6 +150,106 @@ function App({ mcpResource }) {
   onUIAction={handleUIAction}
 />
 ```
+
+### Passing Render-Time Data to Iframes
+
+The `iframeRenderData` prop allows you to send a data payload to an iframe as it renders. This is useful for initializing the iframe with dynamic data from the parent application.
+
+When `iframeRenderData` is provided:
+1. The iframe's URL will automatically include `?waitForRenderData=true`. The iframe's internal script can use this to know it should wait for data instead of immediately rendering.
+2. The data is sent to the iframe via `postMessage` using a dual-mechanism approach to ensure reliable delivery:
+    - **On Load**: A `ui-lifecycle-iframe-render-data` message is sent as soon as the iframe's `onLoad` event fires.
+    - **On Ready**: If the iframe sends a `ui-lifecycle-iframe-ready` message, the parent will respond with the same `ui-lifecycle-iframe-render-data` payload.
+
+This ensures the data is delivered whether the iframe is ready immediately or needs to perform setup work first.
+
+```tsx
+<UIResourceRenderer
+  resource={mcpResource.resource}
+  htmlProps={{
+    iframeRenderData: {
+      theme: 'dark',
+      user: { id: '123', name: 'John Doe' }
+    }
+  }}
+  onUIAction={handleUIAction}
+/>
+```
+
+Inside the iframe, you can listen for this data:
+
+```javascript
+// In the iframe's script
+
+// If the iframe needs to do async work, it can tell the parent when it's ready
+const urlParams = new URLSearchParams(window.location.search);
+if (urlParams.get('waitForRenderData') === 'true') {
+  let customRenderData = null;
+
+  // The parent will send this message on load or when we notify it we're ready
+  window.addEventListener('message', (event) => {
+    // Add origin checks for security
+    if (event.data.type === 'ui-lifecycle-iframe-render-data') {
+      // If the iframe has already received data, we don't need to do anything
+      if(customRenderData) {
+        return;
+      } else {
+        customRenderData = event.data.payload.renderData;
+        // Now you can render the UI with the received data
+        renderUI(customRenderData);
+      }
+    }
+  });
+  // We can let the parent know we're ready to receive data
+  window.parent.postMessage({ type: 'ui-lifecycle-iframe-ready' }, '*');
+} else {
+  // If the iframe doesn't need to wait for data, we can render the default UI immediately
+  renderUI();
+}
+```
+
+### Automatically Resizing the Iframe
+
+The `autoResizeIframe` prop allows you to automatically resize the iframe to the size of the content.
+
+```tsx
+<UIResourceRenderer
+  resource={mcpResource.resource}
+  htmlProps={{
+    autoResizeIframe: true,
+  }}
+  onUIAction={handleUIAction}
+/>
+```
+
+The `autoResizeIframe` prop can be a boolean or an object with the following properties:
+
+- **`width`**: Optional boolean to automatically resize the iframe's width to the size of the content.
+- **`height`**: Optional boolean to automatically resize the iframe's height to the size of the content.
+
+If `autoResizeIframe` is a boolean, the iframe will be resized to the size of the content.
+
+Inside the iframe, you can listen for the `ui-size-change` message and resize the iframe to the size of the content.
+
+```javascript
+const resizeObserver = new ResizeObserver((entries) => {
+  entries.forEach((entry) => {
+    window.parent.postMessage(
+      {
+        type: "ui-size-change",
+        payload: {
+          height: entry.contentRect.height,
+        },
+      },
+      "*",
+    );
+  });
+});
+
+resizeObserver.observe(document.documentElement)
+```
+
+See [Automatically Resizing the Iframe](./html-resource.md#automatically-resizing-the-iframe) for a more detailed example.
 
 ### Accessing the Iframe Element
 
@@ -246,4 +359,4 @@ const customLibrary: ComponentLibrary = {
 
 ## Examples
 
-See [Client SDK Usage & Examples](./usage-examples.md) for complete working examples.
+See [Client SDK Usage & Examples](./react-usage-examples.md) for complete working examples.

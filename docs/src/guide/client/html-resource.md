@@ -12,6 +12,8 @@ export interface HTMLResourceRendererProps {
   onUIAction?: (result: UIActionResult) => Promise<any>;
   style?: React.CSSProperties;
   proxy?: string;
+  iframeRenderData?: Record<string, unknown>;
+  autoResizeIframe?: boolean | { width?: boolean; height?: boolean };
   iframeProps?: Omit<React.HTMLAttributes<HTMLIFrameElement>, 'src' | 'srcDoc' | 'ref' | 'style'>;
 }
 ```
@@ -30,14 +32,14 @@ The component accepts the following props:
   If you don't provide a callback for a specific type, the default handler will be used.
   
   **Asynchronous Response Handling**: When a message includes a `messageId` field, the iframe will automatically receive response messages:
-  - `ui-action-received`: Sent immediately when the message is received
-  - `ui-action-response`: Sent when your callback resolves successfully  
-  - `ui-action-error`: Sent if your callback throws an error
+  - `ui-message-received`: Sent immediately when the message is received
+  - `ui-message-response`: Sent when your callback resolves successfully or throws an error
   
   See [Protocol Details](../protocol-details.md#asynchronous-communication-with-message-ids) for complete examples.
 - **`style`**: (Optional) Custom styles for the iframe.
 - **`proxy`**: (Optional) A URL to a proxy script. This is useful for hosts with a strict Content Security Policy (CSP). When provided, external URLs will be rendered in a nested iframe hosted at this URL. For example, if `proxy` is `https://my-proxy.com/`, the final URL will be `https://my-proxy.com/?url=<encoded_original_url>`. For your convenience, mcp-ui hosts a proxy script at `https://proxy.mcpui.dev`, which you can use as a the prop value without any setup (see `examples/external-url-demo`).
 - **`iframeProps`**: (Optional) Custom props for the iframe.
+- **`autoResizeIframe`**: (Optional) When enabled, the iframe will automatically resize based on messages from the iframe's content. This prop can be a boolean (to enable both width and height resizing) or an object (`{width?: boolean, height?: boolean}`) to control dimensions independently.
 
 ## How It Works
 
@@ -65,7 +67,39 @@ By default, the iframe stretches to 100% width and is at least 200px tall. You c
 
 ## Example Usage
 
-See [Client SDK Usage & Examples](./usage-examples.md) for examples using the recommended `<UIResourceRenderer />` component.
+See [Client SDK Usage & Examples](./react-usage-examples.md) for examples using the recommended `<UIResourceRenderer />` component.
+
+## Auto-Resizing the Iframe
+
+To make the iframe auto-resize, two things need to happen:
+1. The `autoResizeIframe` prop must be set in `htmlProps`when rendering `<UIResourceRenderer />`).
+2. The content inside the iframe must send a `ui-size-change` message to the parent window when its size changes.
+
+The payload of the message should be an object with `width` and/or `height` properties.
+
+### Example Iframe Implementation
+
+Here is an example of how you can use a `ResizeObserver` within your iframe's content to notify the host application of size changes:
+
+```javascript
+const resizeObserver = new ResizeObserver((entries) => {
+  entries.forEach((entry) => {
+    window.parent.postMessage(
+      {
+        type: "ui-size-change",
+        payload: {
+          height: entry.contentRect.height,
+        },
+      },
+      "*",
+    );
+  });
+});
+
+resizeObserver.observe(document.documentElement)
+```
+
+This will observe the root `<html>` element and send a message whenever its height changes. The `<HTMLResourceRenderer />` will catch this message and adjust the iframe's height accordingly. You can also include `width` in the payload if you need to resize the width.
 
 ## Security Notes
 

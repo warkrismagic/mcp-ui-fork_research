@@ -1,6 +1,6 @@
-# @mcp-ui/client Usage & Examples
+# React Usage & Examples
 
-Here's how to use the `<UIResourceRenderer />` component from `@mcp-ui/client`.
+Here's how to use the `<UIResourceRenderer />` component from `@mcp-ui/client` in a React environment.
 
 ## Installation
 
@@ -72,6 +72,7 @@ const AppWithRemoteDOM: React.FC = () => {
     </div>
   );
 };
+```
 
 ## Rendering HTML Resources
 
@@ -340,24 +341,24 @@ const AsyncExampleApp: React.FC = () => {
             const request = pendingRequests.get(message.messageId);
             
             switch (message.type) {
-              case 'ui-action-received':
+              case 'ui-message-received':
                 updateStatus('Request acknowledged, processing...', 'pending');
                 break;
                 
-              case 'ui-action-response':
+              case 'ui-message-response':
+                if (message.payload.error) {
+                  updateStatus('Error occurred!', 'error');
+                  updateResult(\`
+                    <h4>Error:</h4>
+                    <div style="color: red;">\${JSON.stringify(message.payload.error, null, 2)}</div>
+                  \`);
+                  pendingRequests.delete(message.messageId);
+                  break;
+                }
                 updateStatus('Completed successfully!', 'success');
                 updateResult(\`
                   <h4>Response:</h4>
                   <pre>\${JSON.stringify(message.payload.response, null, 2)}</pre>
-                \`);
-                pendingRequests.delete(message.messageId);
-                break;
-                
-              case 'ui-action-error':
-                updateStatus('Error occurred!', 'error');
-                updateResult(\`
-                  <h4>Error:</h4>
-                  <div style="color: red;">\${JSON.stringify(message.payload.error, null, 2)}</div>
                 \`);
                 pendingRequests.delete(message.messageId);
                 break;

@@ -8,11 +8,12 @@ export default defineConfig({
     react(),
     dts({
       insertTypesEntry: true,
-      exclude: ['**/__tests__/**', '**/*.test.ts', '**/*.spec.ts'],
+      exclude: ['**/__tests__/**', '**/*.test.ts', '**/*.spec.ts', '**/UIResourceRendererWC.tsx'],
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any,
   ],
   build: {
+    emptyOutDir: false,
     lib: {
       entry: path.resolve(__dirname, 'src/index.ts'),
       name: 'McpUiClient',
